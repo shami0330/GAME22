@@ -10,6 +10,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%}
 .t{text-shadow:-2px -2px #1b1b3a,2px -2px #1b1b3a,-2px 2px #1b1b3a,2px 2px #1b1b3a,0 4px #1b1b3a}
 button{font:inherit;color:#fff;border:3px solid #1b1b3a;border-radius:14px;padding:7px 13px;background:#3b82ff;box-shadow:0 5px #1b1b3a;text-shadow:0 2px #1b1b3a}
 button:active{transform:translateY(4px);box-shadow:0 1px #1b1b3a}
+button:disabled{opacity:.5}
 .y{background:#ffd23f;color:#1b1b3a;text-shadow:none}.g{background:#43c84b}.on{outline:4px solid #ffd23f}
 .scr{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;z-index:8;padding:env(safe-area-inset-top) 10px 6px}.s{display:flex}
 #menu{background:linear-gradient(#7ad7ff 55%,#43c84b 55%);z-index:5}
@@ -22,7 +23,7 @@ button:active{transform:translateY(4px);box-shadow:0 1px #1b1b3a}
 #rot{position:fixed;inset:0;background:#1b1b3a;z-index:99;display:none;align-items:center;justify-content:center;font-size:24px;text-align:center}
 @media(orientation:portrait){#rot{display:flex}}
 </style>
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 </head><body><canvas id=c></canvas>
 <div id=menu class="scr s"><div class=t style="font-size:24px">⚔️ براول آرنا ۳D</div><div id=chs style="display:flex;gap:6px"></div><div id=modes style="display:flex;gap:6px"></div>
@@ -61,7 +62,7 @@ W.forEach(([x,z,w,d])=>part(sc,new THREE.BoxGeometry(w,1.6,d),0xf0a040,x,.8,z));
 const bm=[],gm=[];
 for(let i=0;i<70;i++){const m=new THREE.Mesh(new THREE.SphereGeometry(.25,8,6),new THREE.MeshBasicMaterial({color:0xffffff}));m.visible=false;sc.add(m);bm.push(m)}
 for(let i=0;i<10;i++){const m=new THREE.Mesh(new THREE.OctahedronGeometry(.4),new THREE.MeshLambertMaterial({color:0xd24bff,emissive:0x7a1fa0}));m.visible=false;sc.add(m);gm.push(m)}
-function addMesh(p){const[,girl,col,hair]=CH[p.ch],root=new THREE.Group(),body=new THREE.Group();root.add(body);
+function addProc(p){const[,girl,col,hair]=CH[p.ch],root=new THREE.Group(),body=new THREE.Group();root.add(body);
 part(body,new THREE.CapsuleGeometry(.38,.5,4,10),col,0,.65,0);
 part(body,new THREE.SphereGeometry(.5,14,12),0xffd3a8,0,1.5,0);
 part(body,new THREE.SphereGeometry(.54,14,12),hair,0,1.6,-.08);
@@ -73,13 +74,27 @@ const sh=new THREE.Mesh(new THREE.SphereGeometry(1.1,12,10),new THREE.MeshBasicM
 const bg=new THREE.Sprite(new THREE.SpriteMaterial({color:0x1b1b3a})),fg=new THREE.Sprite(new THREE.SpriteMaterial({color:TC[p.team]}));
 bg.scale.set(1.35,.26,1);bg.position.y=2.55;fg.center.set(0,.5);fg.position.set(-.6,2.55,.01);fg.scale.set(1.2,.16,1);root.add(bg,fg);
 sc.add(root);p.m={root,body,fg,sh}}
+const AS={},GN=['Pistol_2','Revolver_1','SubmachineGun_2','Shotgun_1','SniperRifle_1','AssaultRifle_1'];
+(async()=>{const bs=[...document.querySelectorAll('#menu button')];bs.forEach(b=>b.disabled=1);msg.textContent='در حال بارگذاری مدل‌ها...';
+try{const{GLTFLoader}=await import('three/addons/loaders/GLTFLoader.js'),sk=await import('three/addons/utils/SkeletonUtils.js'),ld=new GLTFLoader(),L=u=>new Promise((r,j)=>ld.load(u,r,undefined,j));
+AS.clone=sk.clone;[AS.ch,AS.gn]=await Promise.all([L('assets/char.glb'),L('assets/guns.glb')])}catch(e){AS.ch=0}
+bs.forEach(b=>b.disabled=0);msg.textContent=''})();
+function addMesh(p){addProc(p);if(!AS.ch)return;const[,girl,col,hair]=CH[p.ch],m=p.m,k=1.15,mdl=AS.clone(AS.ch.scene);
+m.body.children.forEach(c=>c.visible=false);mdl.scale.setScalar(k);
+mdl.traverse(o=>{if(o.isMesh){o.frustumCulled=false;o.material=o.material.clone();o.material.metalness=0;o.material.roughness=.7;o.material.color.set(o.material.name=='M_Joints'?hair:col)}});
+mdl.updateMatrixWorld(true);const hp=new THREE.Vector3();mdl.getObjectByName('Head').getWorldPosition(hp);
+part(m.body,new THREE.SphereGeometry(.115*k,12,10),hair,0,hp.y+.14*k,-.03*k,0);
+if(girl){const b=new THREE.SphereGeometry(.05*k,8,8);part(m.body,b,hair,-.12*k,hp.y+.05*k,-.03*k,0);part(m.body,b,hair,.12*k,hp.y+.05*k,-.03*k,0)}else part(m.body,new THREE.ConeGeometry(.04*k,.1*k,6),hair,0,hp.y+.27*k,-.02*k,0);
+const gn=AS.gn.scene.getObjectByName(GN[p.ch]);if(gn){const g=gn.clone();g.position.set(.3*k,1*k,.4*k);g.scale.setScalar(.9*k);m.body.add(g)}
+const mx=new THREE.AnimationMixer(mdl),ac=n=>mx.clipAction(AS.ch.animations.find(c=>c.name==n)||AS.ch.animations[0]);
+p.mx=mx;p.ac={idle:ac('Idle_FoldArms_Loop'),move:ac('Walk_Carry_Loop'),shoot:ac('OverhandThrow')};p.ac.move.timeScale=1.7;p.ac.shoot.timeScale=2;p.cur=p.ac.idle.play();m.body.add(mdl)}
 // ---- simulation (host)
 function col(o,r){o.x=Math.max(-A+r,Math.min(A-r,o.x));o.z=Math.max(-Z+r,Math.min(Z-r,o.z));let h=0;for(const[cx,cz,w,d]of W){const dx=o.x-cx,dz=o.z-cz,px=w/2+r-Math.abs(dx),pz=d/2+r-Math.abs(dz);if(px>0&&pz>0){h=1;if(px<pz)o.x+=dx<0?-px:px;else o.z+=dz<0?-pz:pz}}return h}
 function spawn(p){p.hp=100;p.inv=1.5;p.dead=0;p.x=mode=='ffa'?Math.random()*30-15:(p.team?1:-1)*17;p.z=Math.random()*18-9;p.r=p.team?-1.57:1.57;col(p,.5)}
 function mk(l){const n=[0,0];P=l.map((u,i)=>{let t=i;if(mode!='ffa'){t=!u.bot&&i<3?0:n[0]<=n[1]?0:1;n[t]++}return{ch:u.ch,name:u.name,team:t,bot:u.bot,x:0,z:0,r:0,hp:100,dead:0,inv:0,acd:0,cd:0,spd:0,dash:0,dx:0,dz:0,in:{mx:0,mz:0,f:0,a:0}}});P.forEach(p=>spawn(p));P[0].in=I}
 function aimAt(p){let b=null,bd=144;for(const q of P)if(q.team!=p.team&&q.dead<=0){const d=(q.x-p.x)**2+(q.z-p.z)**2;if(d<bd){bd=d;b=q}}return b?Math.atan2(b.x-p.x,b.z-p.z):p.r}
-function shoot(p,a,d=18,s=.25){B.push({x:p.x+Math.sin(a)*.8,z:p.z+Math.cos(a)*.8,vx:Math.sin(a)*14,vz:Math.cos(a)*14,t:p.team,o:p,d,s,l:1.1})}
-function ability(p){const k=CH[p.ch][4];
+function shoot(p,a,d=18,s=.25){p.ev=(p.ev|0)+1;B.push({x:p.x+Math.sin(a)*.8,z:p.z+Math.cos(a)*.8,vx:Math.sin(a)*14,vz:Math.cos(a)*14,t:p.team,o:p,d,s,l:1.1})}
+function ability(p){const k=CH[p.ch][4];p.ev=(p.ev|0)+1;
 if(k=='dash'){const m=Math.hypot(p.in.mx||0,p.in.mz||0);p.dx=m>.1?p.in.mx/m:Math.sin(p.r);p.dz=m>.1?p.in.mz/m:Math.cos(p.r);p.dash=.25}
 else if(k=='heal')P.forEach(q=>{if(q.team==p.team&&q.dead<=0&&Math.hypot(q.x-p.x,q.z-p.z)<7)q.hp=Math.min(100,q.hp+40)});
 else if(k=='burst'){const a=aimAt(p);for(let i=-2;i<=2;i++)shoot(p,a+i*.2,14)}
@@ -106,10 +121,10 @@ for(let j=B.length-1;j>=0;j--){const b=B[j];b.x+=b.vx*dt;b.z+=b.vz*dt;b.l-=dt;co
 if(!h)for(const q of P)if(q.team!=b.t&&q.dead<=0&&Math.hypot(q.x-b.x,q.z-b.z)<.6+b.s){h=1;if(q.inv<=0){q.hp-=b.d;if(q.hp<=0)die(q,b.o)}break}
 if(h)B.splice(j,1)}
 gt-=dt;if(mode=='gems'&&gt<=0&&G.length<8){gt=1.5;const g={x:Math.random()*30-15,z:Math.random()*20-10};col(g,.5);G.push(g)}}
-function bc(){if(!conns.length)return;const d={t:'s',p:P.map(p=>[R(p.x),R(p.z),R(p.r),p.hp|0,p.dead>0?1:0,p.inv>0?1:0,R(Math.max(0,p.acd))]),b:B.map(b=>[R(b.x),R(b.z),b.t,b.s]),g:G.map(g=>[R(g.x),R(g.z)]),S,o:over};conns.forEach(c=>c.open&&c.send(d))}
+function bc(){if(!conns.length)return;const d={t:'s',p:P.map(p=>[R(p.x),R(p.z),R(p.r),p.hp|0,p.dead>0?1:0,p.inv>0?1:0,R(Math.max(0,p.acd)),p.ev|0]),b:B.map(b=>[R(b.x),R(b.z),b.t,b.s]),g:G.map(g=>[R(g.x),R(g.z)]),S,o:over};conns.forEach(c=>c.open&&c.send(d))}
 // ---- network (PeerJS, host = authority)
 function onData(d){if(d.t=='start'){mode=d.mode;me=d.you;P=d.pl.map(([ch,team,name])=>({ch,team,name,x:0,z:0,r:0,tr:0,hp:100,dead:0,inv:0,acd:0}));P.forEach(addMesh);go()}
-else if(d.t=='s'){snap=d;over=d.o;S=d.S;d.p.forEach((a,i)=>{const p=P[i];if(!p)return;if(!p.i){p.x=a[0];p.z=a[1];p.i=1};[p.tx,p.tz,p.tr,p.hp,p.dead,p.inv,p.acd]=a})}}
+else if(d.t=='s'){snap=d;over=d.o;S=d.S;d.p.forEach((a,i)=>{const p=P[i];if(!p)return;if(!p.i){p.x=a[0];p.z=a[1];p.i=1};[p.tx,p.tz,p.tr,p.hp,p.dead,p.inv,p.acd,p.ev]=a})}}
 function start(hum){const l=[...hum];while(l.length<6)l.push({ch:Math.random()*6|0,name:'🤖',bot:1});mk(l);P.forEach(addMesh);conns.forEach((c,i)=>{c.p=P[i+1];c.send({t:'start',mode,you:i+1,pl:P.map(p=>[p.ch,p.team,p.name])})});go()}
 function go(){$('menu').classList.remove('s');$('ui').style.display='block';run=1;apply()}
 CH.forEach((c,i)=>{const d=document.createElement('div');d.className='cc'+(i?'':' on');d.style.background='#'+c[2].toString(16).padStart(6,'0');d.innerHTML=(c[1]?'👧':'👦')+'<br>'+c[0]+'<br><small>'+c[5]+'</small>';d.onclick=()=>{myCh=i;[...chs.children].forEach((x,j)=>x.classList.toggle('on',j==i))};chs.append(d)});
@@ -147,7 +162,9 @@ $('gear').onclick=()=>{if(ed){ed=0;sv();apply()}else panel.classList.add('s')};
 function draw(dt,t){
 P.forEach(p=>{const m=p.m;if(!isHost){const k=Math.min(1,dt*14);p.x+=(p.tx-p.x)*k;p.z+=(p.tz-p.z)*k;p.r=p.tr}
 const mvg=Math.hypot(p.x-(p.px??p.x),p.z-(p.pz??p.z))>.03;p.px=p.x;p.pz=p.z;
-m.root.visible=!(p.dead>0);m.root.position.set(p.x,0,p.z);m.body.rotation.y=p.r;m.body.position.y=mvg?Math.abs(Math.sin(t*14))*.2:0;
+if(p.ev!==p.pev){p.pev=p.ev;p.sa=.5}
+if(p.mx){p.sa-=dt;const w=p.sa>0?p.ac.shoot:mvg?p.ac.move:p.ac.idle;if(w!==p.cur){w.reset().fadeIn(.12).play();p.cur.fadeOut(.12);p.cur=w}p.mx.update(dt)}
+m.root.visible=!(p.dead>0);m.root.position.set(p.x,0,p.z);m.body.rotation.y=p.r;m.body.position.y=mvg&&!p.mx?Math.abs(Math.sin(t*14))*.2:0;
 m.fg.scale.x=Math.max(.01,1.2*p.hp/100);m.sh.visible=p.inv>0});
 const bl=isHost?B.map(b=>[b.x,b.z,b.t,b.s]):snap?snap.b:[],gl=isHost?G.map(g=>[g.x,g.z]):snap?snap.g:[];
 bm.forEach((m,i)=>{const b=bl[i];m.visible=!!b;if(b){m.position.set(b[0],.9,b[1]);m.scale.setScalar(b[3]/.25);m.material.color.setHex(TC[b[2]])}});
